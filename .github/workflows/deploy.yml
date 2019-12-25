@@ -1,0 +1,28 @@
+name: Deploy master branch
+on:
+  push:
+    branches:
+      - master
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [10.x]
+    steps:
+      - uses: actions/checkout@v1
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v1
+        with:
+          node-version: ${{ matrix.node-version }}
+      - name: Install SSH key
+        uses: shimataro/ssh-key-action@v1
+        with:
+          private-key: ${{ secrets.SSH_KEY_PRIVATE }}
+          public-key: ${{ secrets.SSH_KEY_PUBLIC }}
+      - name: Disable SSH host check
+        run: echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
+      - name: Install
+        run: npm install
+      - name: Deploy
+        run: npm run deploy
