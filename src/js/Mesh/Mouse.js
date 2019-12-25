@@ -1,6 +1,7 @@
 import throttle from 'lodash.throttle';
 
 import DocumentHelper from './DocumentHelper';
+import { easeOutCubic } from './easing';
 
 const defaultOptions = {
   holdingAngle: 40,
@@ -11,9 +12,12 @@ const defaultOptions = {
 class Mouse {
   x = 0;
   y = 0;
+  position = { x0: 0, y0: 0, x1: 0, y1: 0, t0: Date.now() };
   mass = 50;
+  velocity = 1;
   listeners = {};
   listenersMap = {};
+  attached = true;
 
   constructor(parent, options) {
     if (!parent) {
@@ -23,73 +27,33 @@ class Mouse {
     const { height, width } = DocumentHelper.getDimensions();
     this.x = width / 2;
     this.y = height / 2;
+    this.setPosition(this.x, this.y);
 
     this.parent = parent;
     this.options = { ...defaultOptions, options };
     this.originalMass = this.mass;
+    this.originalVelocity = this.velocity;
 
     this.throttledDeviceMove = throttle(this.handleDeviceMove, 20);
     this.throttledMove = throttle(this.handleMove, 20);
 
     if (window.DeviceOrientationEvent) {
-      window.addEventListener('deviceorientation', this.throttledDeviceMove, false);
+      window.addEventListener('deviceorientation', this.throttledDeviceMove);
     }
 
     window.addEventListener('mousemove', this.throttledMove);
     window.addEventListener('mousedown', this.handleClick);
+
+    this.move();
   }
 
   remove() {
+    this.attached = false;
+
     window.removeEventListener('mousemove', this.handleMove);
     window.removeEventListener('mousedown', this.handleClick);
     window.removeEventListener('deviceorientation', this.handleDeviceMove);
-
-    // Remove all subscriptions
-    Object.keys(this.listenersMap).forEach(id => {
-      this.unsubscribe(id);
-    });
   }
-
-  subscribe = (event, callback) => {
-    if (typeof this.listeners[event] === 'undefined') {
-      this.listeners[event] = {};
-    }
-
-    if (typeof callback !== 'function') {
-      console.error('The event was not a function');
-      return null;
-    }
-
-    const id = `${event}.${Date.now()}`;
-
-    this.listenersMap[id] = { event };
-    this.listeners[event][id] = ({ callback });
-
-    return id;
-  };
-
-  unsubscribe = (id) => {
-    const { event } = this.listenersMap[id];
-    if (event) {
-      delete this.listeners[event][id];
-      delete this.listenersMap[id];
-    }
-  }
-
-  trigger = event => {
-    const eventListeners = this.listeners[event];
-
-    if (typeof eventListeners === 'undefined') {
-      return;
-    }
-
-    const state = this.getState();
-
-    Object.keys(eventListeners).forEach(id => {
-      const { callback } = eventListeners[id];
-      callback(state);
-    });
-  };
 
   getPosition = () => {
     const { height, width } = DocumentHelper.getDimensions();
@@ -98,8 +62,13 @@ class Mouse {
       y: this.y,
       percentX: this.x / width,
       percentY: this.y / height,
-    }
-  }
+    };
+  };
+
+  setPosition = (x1, y1) => {
+    // Internal only
+    this.position = { x0: this.x, y0: this.y, x1, y1, t0: Date.now() };
+  };
 
   getAngle = () => {
     const { height, width } = DocumentHelper.getDimensions();
@@ -117,20 +86,39 @@ class Mouse {
     angle: this.getAngle(),
   });
 
-  setPosition = (x, y) => {
-    this.x = x;
-    this.y = y;
-  }
-
   restore = () => {
     this.mass = this.originalMass;
-    this.pulsing = false;
-  }
+    this.velocity = this.originalVelocity;
+  };
+
+  move = () => {
+    const { x1, y1, x0, y0, t0 } = this.position;
+
+    const dt = Date.now() - t0;
+    const duration = 800;
+
+    const easedTd = easeOutCubic(dt / duration);
+
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+
+    if (!this.isRoughlyEqual(x1, this.x)) {
+      this.x = x0 + dx * easedTd * this.velocity;
+    }
+
+    if (!this.isRoughlyEqual(y1, this.y)) {
+      this.y = y0 + dy * easedTd * this.velocity;
+    }
+
+    if (this.attached) {
+      requestAnimationFrame(this.move);
+    }
+  };
 
   pulse = () => {
     const dt = Date.now() - this.startTime;
     const pulseDuration = 1000;
-    const pulseMultiplier = 300;
+    const pulseMultiplier = 200;
 
     if (dt > pulseDuration) {
       this.restore();
@@ -138,11 +126,18 @@ class Mouse {
     }
 
     this.mass = this.originalMass + pulseMultiplier * Math.sin(1 - dt / pulseDuration);
+    this.velocity = 0.3;
 
-    requestAnimationFrame(this.pulse);
+    if (this.attached) {
+      requestAnimationFrame(this.pulse);
+    }
+  };
+
+  isRoughlyEqual(num, num2) {
+    return Math.abs(num - num2) < 2;
   }
 
-  handleDeviceMove = (e) => {
+  handleDeviceMove = e => {
     // beta - x, gamma - y, alpha - z (rotation axis)
     const { beta, gamma } = e;
     const { height, width } = this.parent;
@@ -157,29 +152,18 @@ class Mouse {
     y = height * (y / this.options.yLimit);
 
     this.setPosition(x, y);
-    this.trigger('move');
-  }
+  };
 
-  handleMove = (e) => {
-    if (this.pulsing) {
-      return;
-    }
-
-    this.x = e.pageX;
-    this.y = e.pageY;
-
+  handleMove = e => {
     this.setPosition(e.pageX, e.pageY);
-    this.trigger('move');
-  }
+  };
 
-  handleClick = (e) => {
+  handleClick = e => {
     this.setPosition(e.pageX, e.pageY);
 
     this.startTime = Date.now();
-    this.pulsing = true;
     this.pulse();
-    this.trigger('click');
-  }
+  };
 }
 
 export default Mouse;

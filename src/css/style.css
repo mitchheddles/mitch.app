@@ -30,7 +30,6 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   font-smoothing: antialiased;
-  color: #e8242f;
 }
 
 .main {
@@ -54,10 +53,10 @@ h1 > span {
   display: inline-block;
   float: left;
   margin-left: -2px;
-  transform: translateY(8rem) translateX(-1rem) rotateZ(10deg);
+  transform: translateY(9rem) translateX(-1rem) rotateZ(10deg);
   opacity: 0;
   transition-property: transform, opacity;
-  transition-duration: 0.6s, 0.7s;
+  transition-duration: .8s, 0.7s;
   transition-timing-function: cubic-bezier(0.27, 0.84, 0.09, 0.99) ease-in;
 }
 
@@ -103,10 +102,8 @@ canvas {
   opacity: 1;
 }
 
-.detail a,
-.detail em {
+.detail a {
   color: #e8242f;
-  text-decoration: none;
   font-style: normal;
 }
 

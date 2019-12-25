@@ -1,5 +1,3 @@
-require('es6-promise').polyfill();
-
 import FontFaceObserver from 'fontfaceobserver';
 import Mesh from './Mesh';
 
