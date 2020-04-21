@@ -15,14 +15,10 @@ jobs:
         uses: actions/setup-node@v1
         with:
           node-version: ${{ matrix.node-version }}
-      - name: Install SSH key
-        uses: shimataro/ssh-key-action@v1
-        with:
-          private-key: ${{ secrets.SSH_KEY_PRIVATE }}
-          public-key: ${{ secrets.SSH_KEY_PUBLIC }}
-      - name: Disable SSH host check
-        run: echo -e "Host *\n\tStrictHostKeyChecking no\n" >> ~/.ssh/config
       - name: Install
         run: npm install
       - name: Deploy
         run: npm run deploy
+        env:
+            AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

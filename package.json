@@ -8,7 +8,7 @@
     "build": "parcel build src/index.html --public-url /assets -d dist/assets",
     "postbuild": "mv dist/assets/index.html dist/index.html",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "deploy": "rsync -avzh dist/ mitchhed@mitchheddles.com:/home/mitchhed/www",
+    "deploy": "aws s3 cp dist/ s3://mitch.app --recursive",
     "predeploy": "npm run build"
   },
   "author": "Mitch Heddles <mitchell.heddles@gmail.com>",
