@@ -13,7 +13,7 @@ class Mouse {
   x = 0;
   y = 0;
   position = { x0: 0, y0: 0, x1: 0, y1: 0, t0: Date.now() };
-  mass = 50;
+  mass = 100;
   velocity = 1;
   listeners = {};
   listenersMap = {};
@@ -34,8 +34,8 @@ class Mouse {
     this.originalMass = this.mass;
     this.originalVelocity = this.velocity;
 
-    this.throttledDeviceMove = throttle(this.handleDeviceMove, 20);
-    this.throttledMove = throttle(this.handleMove, 20);
+    this.throttledDeviceMove = throttle(this.handleDeviceMove, 100);
+    this.throttledMove = throttle(this.handleMove, 100);
 
     if (window.DeviceOrientationEvent) {
       window.addEventListener('deviceorientation', this.throttledDeviceMove);
